@@ -74,7 +74,23 @@ use chroot=no
 uid=root
 exclude = /ports
 
-4) Scheduling backup on backup server
+4) Launching the script
+   --------------------
+
+tobackup takes mainly 3 arguments :
+
+-h HOST1   : use config for HOST1 in config file
+DIR        : store backup in DIR
+NUMKEEP    : number of incrementals backup to keep in DIR
+
+For example, the command :
+
+$ tobackup -h host1 daily 6
+
+keeps 6 backups in "daily" directory. If you launch this command each day, you
+have daily backups of the last 6 days.
+
+5) Scheduling backup on backup server
    ----------------------------------
 Scheduling is done using cron(8). Example :
 
