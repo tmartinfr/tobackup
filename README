@@ -21,8 +21,8 @@ and store backup, and the backup client is the host which is backuped.
 Launch the program with no parameters to get help.
 In addition, the following steps must be performed.
 
-Config file on backup server
-----------------------------
+1) Config file on backup server
+  -----------------------------
 Default config file on backup server is /usr/local/etc/backuprc. Overwrite this
 with the -f flag.
 Example :
@@ -41,8 +41,8 @@ HOST1_PORT="221"
 # rsync modules to backup
 HOST1_BACKUP_SRC=":root :usr :var"
 
-Configure SSH on backup client
-------------------------------
+2) Configure SSH on backup client
+   ------------------------------
 Add a line like this in the .ssh/authorized_keys file of the remote user who
 will be used for transfer, followed by your SSH backup key. If root, you can
 specify "forced-commands-only" for the PermitRootLogin directive of sshd.
@@ -53,8 +53,8 @@ from="1.2.3.4",command="rsync --daemon --server --config\
       /usr/local/etc/rsyncd-backup.conf .",no-port-forwarding,\ 
       no-X11-forwarding,no-agent-forwarding,no-pty 
 
-Configure rsyncd on backup client
----------------------------------
+3 Configure rsyncd on backup client
+  ---------------------------------
 Add the directories to backup in /usr/local/etc/rsyncd-backup.conf. See
 rsyncd-backup(5) man page. Example :
 
@@ -72,8 +72,8 @@ use chroot=no
 uid=root
 exclude = /ports
 
-Scheduling backup on backup server
-----------------------------------
+4) Scheduling backup on backup server
+   ----------------------------------
 Scheduling is done using cron(8). Example :
 
 35      23      *       *       1-6     backup rsync -h host1 daily 6
