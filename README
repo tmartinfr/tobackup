@@ -17,6 +17,8 @@ Configuration
 =============
 tobackup is based on a pull model : the backup server is the host which fetch
 and store backup, and the backup client is the host which is backuped.
+For backuping your local host, use the same steps, and specify 127.0.0.1 for
+the _HOST parameter (see below).
 
 Launch the program with no parameters to get help.
 In addition, the following steps must be performed.
