@@ -74,6 +74,8 @@ op_rsync() {
 	backuphost=`eval $tmp`
 	tmp="echo \$${hostcaps}_PORT"
 	backupport=`eval $tmp`
+	tmp="echo \$${hostcaps}_USER"
+	backupuser=`eval $tmp`
 	tmpdir=$backupdir/tmp
 	cnterror=0
 	cntsrc=0
@@ -82,6 +84,8 @@ op_rsync() {
 		echo "No directory to backup for host $host"
 		exit 1
 	fi
+
+	[ "$backupuser" ] || backupuser='root'
 
 	if [ $VERBOSE -eq 1 ]; then
 		rsync_command="$rsync_command -v --stats"
@@ -114,7 +118,7 @@ op_rsync() {
 				d=""
 			fi
 
-			hostsrc="root@$backuphost:$src"
+			hostsrc="$backupuser@$backuphost:$src"
 		else
 			hostsrc=$src
 		fi
