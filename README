@@ -40,6 +40,8 @@ SSH_KEY=/some/path/backup.key
 HOST1_HOST="host1.example.com"
 # Host port
 HOST1_PORT="221"
+# User
+HOST1_USER="root"
 # rsync modules to backup
 HOST1_BACKUP_SRC=":root :usr :var"
 
