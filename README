@@ -24,7 +24,7 @@ In addition, the following steps must be performed.
 Config file on backup server
 ----------------------------
 Default config file on backup server is /usr/local/etc/backuprc. Overwrite this
-with the -f flag. An example can be find in the backuprc.sample file.
+with the -f flag.
 Example :
 
 # Directory where backup are stored
