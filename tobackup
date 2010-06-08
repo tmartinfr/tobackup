@@ -83,6 +83,12 @@ op_rsync() {
 	if [ -z "$backupsrc" ]; then
 		echo "No directory to backup for host $host"
 		exit 1
+	elif [ -z "$sshkey" ]; then
+		echo "No SSH key defined"
+		exit 1
+	elif [ ! -r $sshkey ]; then
+		echo "SSH key not readable"
+		exit 1
 	fi
 
 	[ "$backupuser" ] || backupuser='root'
