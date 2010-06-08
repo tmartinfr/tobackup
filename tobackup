@@ -95,7 +95,6 @@ op_rsync() {
 
 	if [ $VERBOSE -eq 1 ]; then
 		rsync_command="$rsync_command -v --stats"
-		shift;
 	fi
 
 	mkdir -p $tmpdir
