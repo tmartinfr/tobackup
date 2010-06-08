@@ -1,0 +1,204 @@
+#!/bin/sh
+
+##############################################################################
+# tobackup - A simple unix-style backup tool
+# Author : Thomas Martin <git-tobackup@tmartin.fr>
+# vim: noexpandtab
+##############################################################################
+
+set -e
+
+usage() {
+	cat <<EOT >&2
+
+Usage: $0 [OPTION] DIR NUMKEEP
+
+ -f : specify alternative config file (default /usr/local/etc/backuprc)
+ -v : verbose mode
+ -n : only rsync to temp dir, do not rotate previous backup
+ -h HOST : backup HOST (see config file)
+
+ DIR : subdir where backup is done, commonly a backup level (daily, weekly,...)
+ NUMKEEP : number of increments
+ 
+EOT
+	exit 1
+}
+
+log_msg() {
+	logger -i -t backup $1
+}
+
+pidfile() {
+	piddir="/var/run"
+	[ -w $piddir ] || piddir=$HOME
+	pidfile=$piddir/backup-$1.pid
+
+	if [ -e $pidfile ]; then
+		echo "$pidfile exist (`cat $pidfile`)" >&2
+		exit 1
+	fi
+	
+	echo "$$" > $pidfile
+	trap "rm -f $pidfile" EXIT
+}
+
+debug() {
+	if [ $VERBOSE -eq 1 ]; then
+		echo "debug: $1"
+	fi
+}
+
+op_rsync() {
+
+	# begin to prepare rsync command
+	rsync_command="rsync -Hax --delete"
+
+	host=`hostname -s`
+	[ "$opt_rsync_compress" ] && rsync_command="$rsync_command -z"
+	opid="$host/$backuplevel"
+	
+	pidfile rsync-$host-$backuplevel
+
+	log_msg "rsync $opid starting"
+
+	hostcaps=`echo $host | tr 'a-z' 'A-Z'`
+	backuproot="$BACKUP_DIR/$host"
+	backupdir="$backuproot/$backuplevel"
+	sshkey=$SSH_KEY
+	tmp="echo \$${hostcaps}_BACKUP_SRC"
+	backupsrc=`eval $tmp`
+	tmp="echo \$${hostcaps}_EXCLUDE"
+	backupexclude=`eval $tmp`
+	tmp="echo \$${hostcaps}_HOST"
+	backuphost=`eval $tmp`
+	tmp="echo \$${hostcaps}_PORT"
+	backupport=`eval $tmp`
+	tmpdir=$backupdir/tmp
+	cnterror=0
+	cntsrc=0
+
+	if [ $VERBOSE -eq 1 ]; then
+		rsync_command="$rsync_command -v --stats"
+		shift;
+	fi
+
+	mkdir -p $tmpdir
+
+	# exclude dir
+	for dir in $backupexclude; do
+		rsync_command="$rsync_command --exclude $dir"
+	done
+
+	if [ "$backuphost" ]; then
+		sshcmd="ssh -p ${backupport:-22} -T -o PreferredAuthentications=publickey -i $sshkey"
+		rsync_command="$rsync_command -e \"$sshcmd\""
+	fi
+
+	for src in $backupsrc; do
+
+		cntsrc=`expr $cntsrc + 1`
+
+		if [ "$backuphost" ]; then
+			# if we use rsyncd
+			if echo $src | grep -Eq ^:; then
+				d="/"`echo $src | sed s/^://`
+			elif [ "$src" = "/" ]; then
+				d="/root"
+			else
+				d=""
+			fi
+
+			hostsrc="root@$backuphost:$src"
+		else
+			hostsrc=$src
+		fi
+
+		# add dir links
+		link_dest=""
+		for dir in `find $backuproot/ -maxdepth 2 -name 0`; do
+			link_dest="$link_dest --link-dest=$dir$d"
+		done
+
+		# finally launch transfer
+		set +e
+		eval "$rsync_command $link_dest $hostsrc $tmpdir$d"
+
+		# don't fail in case of vanished source files
+		if [ $? -ne 0 -a $? -ne 24 ]; then
+			log_msg "rsync $opid on $src failure"
+			cnterror=`expr $cnterror + 1`
+		fi
+		set -e
+
+	done
+
+	# set current date on tmp dir
+	touch $tmpdir
+
+	# rotate unless -n is specified or all transfer have failed
+	if [ -z "$opt_dontrotate" -a $cnterror -lt $cntsrc ]; then
+
+		# deleting oldest backup
+		oldestbackup=$backupdir/`expr $numkeep - 1`
+		[ -d $oldestbackup ] && rm -rf $oldestbackup
+		
+		# rotation
+		i=`expr $numkeep - 1`
+		while [ $i -gt 0 ]; do
+			prev=$backupdir/`expr $i - 1` || true
+			[ -d $prev ] && mv $prev $backupdir/$i
+			i=`expr $i - 1` || true
+		done
+		
+		# moving the performed backup as last backup
+		mv $tmpdir $backupdir/0
+
+	fi
+
+	if [ $cnterror -eq 0 ]; then
+		log_msg "rsync $opid successful"
+	else
+		log_msg "rsync $opid failure (errors on $cnterror/$cntsrc src)"
+	fi
+}
+
+#----------------------------------------------------------------------------#
+# Arguments parsing
+#----------------------------------------------------------------------------#
+
+VERBOSE=0
+conffile="/usr/local/etc/backuprc"
+
+args=`getopt nvh:f: $*`
+[ $? -ne 0 ] && usage
+
+for i do
+	case "$i" in
+	-f)
+		conffile=$2
+		shift;shift
+		;;
+	-h)
+		host=$2
+		opt_rsync_compress=1
+		shift;shift
+		;;
+	-n)
+		opt_dontrotate=1
+		shift
+		;;
+	-v)
+		VERBOSE=1
+		shift
+		;;
+	esac
+done
+
+[ $# -ne 2 ] && usage
+backuplevel=$1
+numkeep=$2
+
+. $conffile
+op_rsync
+
