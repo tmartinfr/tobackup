@@ -78,9 +78,9 @@ exclude = /ports
    ----------------------------------
 Scheduling is done using cron(8). Example :
 
-35      23      *       *       1-6     backup rsync -h host1 daily 6
-35      23      *       *       0       backup rsync -h host1 weekly 3
-50      23      1       *       *       backup rsync -h host1 monthly 6
+35      23      *       *       1-6     tobackup rsync -h host1 daily 6
+35      23      *       *       0       tobackup rsync -h host1 weekly 3
+50      23      1       *       *       tobackup rsync -h host1 monthly 6
 
 You can add the -v switch to get a full listing of file transfers.
 
