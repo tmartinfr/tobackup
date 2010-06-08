@@ -54,7 +54,7 @@ op_rsync() {
 	# begin to prepare rsync command
 	rsync_command="rsync -Hax --delete"
 
-	host=`hostname -s`
+	[ "$host" ] || host=`hostname -s`
 	[ "$opt_rsync_compress" ] && rsync_command="$rsync_command -z"
 	opid="$host/$backuplevel"
 	
