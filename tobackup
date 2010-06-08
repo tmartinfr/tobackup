@@ -154,11 +154,11 @@ op_rsync() {
 	if [ -z "$opt_dontrotate" -a $cnterror -lt $cntsrc ]; then
 
 		# deleting oldest backup
-		oldestbackup=$backupdir/`expr $numkeep - 1`
+		oldestbackup=$backupdir/`expr $numkeep - 1` || true
 		[ -d $oldestbackup ] && rm -rf $oldestbackup
 		
 		# rotation
-		i=`expr $numkeep - 1`
+		i=`expr $numkeep - 1` || true
 		while [ $i -gt 0 ]; do
 			prev=$backupdir/`expr $i - 1` || true
 			[ -d $prev ] && mv $prev $backupdir/$i
