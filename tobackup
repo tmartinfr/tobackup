@@ -78,6 +78,11 @@ op_rsync() {
 	cnterror=0
 	cntsrc=0
 
+	if [ -z "$backupsrc" ]; then
+		echo "No directory to backup for host $host"
+		exit 1
+	fi
+
 	if [ $VERBOSE -eq 1 ]; then
 		rsync_command="$rsync_command -v --stats"
 		shift;
