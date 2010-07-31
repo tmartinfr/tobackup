@@ -48,12 +48,12 @@ HOST1_BACKUP_SRC=":root :usr :var"
 2) Configure SSH on backup client
    ------------------------------
 Add the SSH key to the .ssh/authorized_keys file of the remote user who
-will be used for transfer, with the following options. If root, you can
+will be used for transfer, with the following options. If root, you may
 specify "forced-commands-only" for the PermitRootLogin directive of sshd.
 
 Example (backup server has IP address 1.2.3.4) :
 
-from="1.2.3.4",command="rsync --daemon --server --config /usr/local/etc/rsyncd-backup.conf .",no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty ssh-rsa XXXXXXXXXXX user@backupserver
+from="1.2.3.4",command="rsync --daemon --server --config /usr/local/etc/rsyncd-backup.conf .",no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty ssh-rsa XXXXXXXXXXX root@backupserver
 
 3 Configure rsyncd on backup client
   ---------------------------------
@@ -98,7 +98,11 @@ Scheduling is done using cron(8). Example :
 35      23      *       *       0       tobackup -h host1 weekly 3
 50      23      1       *       *       tobackup -h host1 monthly 6
 
-You can add the -v switch to get a full listing of file transfers.
+This performs daily backup on the last 6 days at 23:35, from monday to
+saturday, weekly backup on the last 3 weeks at the same time on sunday, and
+monthly backup on the last 6 months the first day of each month.
+
+Note : You may add the -v switch to get a full listing of file transfers.
 
 
 Author
