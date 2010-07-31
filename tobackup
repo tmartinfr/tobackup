@@ -55,7 +55,6 @@ op_rsync() {
 	rsync_command="rsync -Hax --delete"
 
 	[ "$host" ] || host=`hostname -s`
-	[ "$opt_rsync_compress" ] && rsync_command="$rsync_command -z"
 	opid="$host/$backuplevel"
 	
 	pidfile rsync-$host-$backuplevel
@@ -68,14 +67,14 @@ op_rsync() {
 	sshkey=$SSH_KEY
 	tmp="echo \$${hostcaps}_BACKUP_SRC"
 	backupsrc=`eval $tmp`
-	tmp="echo \$${hostcaps}_EXCLUDE"
-	backupexclude=`eval $tmp`
 	tmp="echo \$${hostcaps}_HOST"
 	backuphost=`eval $tmp`
 	tmp="echo \$${hostcaps}_PORT"
 	backupport=`eval $tmp`
 	tmp="echo \$${hostcaps}_USER"
 	backupuser=`eval $tmp`
+	tmp="echo \$${hostcaps}_CONFIG"
+	backupconfig=`eval $tmp`
 	tmpdir=$backupdir/tmp
 	cnterror=0
 	cntsrc=0
@@ -91,41 +90,33 @@ op_rsync() {
 		exit 1
 	fi
 
-	[ "$backupuser" ] || backupuser='root'
-
 	if [ $VERBOSE -eq 1 ]; then
 		rsync_command="$rsync_command -v --stats"
 	fi
 
 	mkdir -p $tmpdir
 
-	# exclude dir
-	for dir in $backupexclude; do
-		rsync_command="$rsync_command --exclude $dir"
-	done
-
 	if [ "$backuphost" ]; then
-		sshcmd="ssh -p ${backupport:-22} -T -o PreferredAuthentications=publickey -i $sshkey"
-		rsync_command="$rsync_command -e \"$sshcmd\""
+		execcmd="ssh -p ${backupport:-22} -T -o PreferredAuthentications=publickey -i $sshkey"
+		rsync_command="$rsync_command -z"
+	elif [ "$backupconfig" ]; then
+		backuphost="127.0.0.1"
+		execcmd="rsync --daemon --server --config $backupconfig ."
+	else
+		echo "No _HOST or _CONFIG defined for host $host"
+		exit 1
 	fi
+
+	rsync_command="$rsync_command -e \"$execcmd\""
 
 	for src in $backupsrc; do
 
 		cntsrc=`expr $cntsrc + 1`
-
-		if [ "$backuphost" ]; then
-			# if we use rsyncd
-			if echo $src | grep -Eq ^:; then
-				d="/"`echo $src | sed s/^://`
-			elif [ "$src" = "/" ]; then
-				d="/root"
-			else
-				d=""
-			fi
-
+		d="/"`echo $src | sed s/^://`
+		if [ "$backupuser" ]; then
 			hostsrc="$backupuser@$backuphost:$src"
 		else
-			hostsrc=$src
+			hostsrc="$backuphost:$src"
 		fi
 
 		# add dir links
@@ -195,7 +186,6 @@ for i do
 		;;
 	-h)
 		host=$2
-		opt_rsync_compress=1
 		shift;shift
 		;;
 	-n)

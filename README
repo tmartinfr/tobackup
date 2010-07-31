@@ -35,7 +35,13 @@ BACKUP_DIR=/some/path
 # SSH key for remote backup
 SSH_KEY=/some/path/backup.key
 
-## Configuration for the host label "HOST1"
+## Configuration for local backup
+# Local rsyncd config file
+MYHOST_CONFIG="/usr/local/etc/rsyncd-backup.conf"
+# rsync modules to backup
+HOST1_BACKUP_SRC=":root :usr :var"
+
+## Configuration for remote host "HOST1"
 # Host name
 HOST1_HOST="host1.example.com"
 # Host port
@@ -45,8 +51,8 @@ HOST1_USER="root"
 # rsync modules to backup
 HOST1_BACKUP_SRC=":root :usr :var"
 
-2) Configure SSH on backup client
-   ------------------------------
+2) Configure SSH for a remote backuped host (if necessary)
+   ----------------------------------------
 Add the SSH key to the .ssh/authorized_keys file of the remote user who
 will be used for transfer, with the following options. If root, you may
 specify "forced-commands-only" for the PermitRootLogin directive of sshd.
@@ -55,8 +61,8 @@ Example (backup server has IP address 1.2.3.4) :
 
 from="1.2.3.4",command="rsync --daemon --server --config /usr/local/etc/rsyncd-backup.conf .",no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty ssh-rsa XXXXXXXXXXX root@backupserver
 
-3 Configure rsyncd on backup client
-  ---------------------------------
+3 Configure rsyncd on a backuped host (remote or local)
+  -----------------------------------
 Add the directories to backup in /usr/local/etc/rsyncd-backup.conf. See
 rsyncd-backup(5) man page. Example :
 
