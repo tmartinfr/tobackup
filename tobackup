@@ -17,6 +17,7 @@ Usage: $0 [OPTION] DIR NUMKEEP
  -v : verbose mode
  -n : only rsync to temp dir, do not rotate previous backup
  -h HOST : backup HOST (see config file)
+ -d : debug mode, print rsync command instead of execute it
 
  DIR : subdir where backup is done, commonly a backup level (daily, weekly,...)
  NUMKEEP : number of increments
@@ -125,9 +126,16 @@ op_rsync() {
 			link_dest="$link_dest --link-dest=$dir$d"
 		done
 
+		# final command to execute for this src
+		rsync_command_src="$rsync_command $link_dest $hostsrc $tmpdir$d"
+
 		# finally launch transfer
 		set +e
-		eval "$rsync_command $link_dest $hostsrc $tmpdir$d"
+		if [ "$opt_debug" ]; then
+			echo $rsync_command_src
+		else
+			eval $rsync_command_src
+		fi
 
 		# don't fail in case of vanished source files
 		if [ $? -ne 0 -a $? -ne 24 ]; then
@@ -141,8 +149,9 @@ op_rsync() {
 	# set current date on tmp dir
 	touch $tmpdir
 
-	# rotate unless -n is specified or all transfer have failed
-	if [ -z "$opt_dontrotate" -a $cnterror -lt $cntsrc ]; then
+	# rotate unless -n or -d is specified or all transfer have failed
+	if [ -z "$opt_dontrotate" -a -z "$opt_debug" \
+	     -a $cnterror -lt $cntsrc ]; then
 
 		# deleting oldest backup
 		oldestbackup=$backupdir/`expr $numkeep - 1` || true
@@ -175,7 +184,7 @@ op_rsync() {
 VERBOSE=0
 conffile="/usr/local/etc/backuprc"
 
-args=`getopt nvh:f: $*`
+args=`getopt nvdh:f: $*`
 [ $? -ne 0 ] && usage
 
 for i do
@@ -190,6 +199,10 @@ for i do
 		;;
 	-n)
 		opt_dontrotate=1
+		shift
+		;;
+	-d)
+		opt_debug=1
 		shift
 		;;
 	-v)
