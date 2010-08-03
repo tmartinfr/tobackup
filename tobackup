@@ -13,11 +13,12 @@ usage() {
 
 Usage: $0 [OPTION] DIR NUMKEEP
 
- -f : specify alternative config file (default /usr/local/etc/backuprc)
+ -f FILE : specify alternative config file (default /usr/local/etc/backuprc)
  -v : verbose mode
  -n : only rsync to temp dir, do not rotate previous backup
  -h HOST : backup HOST (see config file)
  -d : debug mode, print rsync command instead of execute it
+ -l DIR : hard link to DIR
 
  DIR : subdir where backup is done, commonly a backup level (daily, weekly,...)
  NUMKEEP : number of increments
@@ -120,11 +121,15 @@ op_rsync() {
 			hostsrc="$backuphost:$src"
 		fi
 
-		# add dir links
-		link_dest=""
-		for dir in `find $backuproot/ -maxdepth 2 -name 0`; do
-			link_dest="$link_dest --link-dest=$dir$d"
-		done
+		# add links
+		if [ "$opt_linkdir" ]; then
+			link_dest="--link-dest=$opt_linkdir"
+		else
+			link_dest=""
+			for dir in `find $backuproot/ -maxdepth 2 -name 0`; do
+				link_dest="$link_dest --link-dest=$dir$d"
+			done
+		fi
 
 		# final command to execute for this src
 		rsync_command_src="$rsync_command $link_dest $hostsrc $tmpdir$d"
@@ -184,7 +189,7 @@ op_rsync() {
 VERBOSE=0
 conffile="/usr/local/etc/backuprc"
 
-args=`getopt nvdh:f: $*`
+args=`getopt nvdh:f:l: $*`
 [ $? -ne 0 ] && usage
 
 for i do
@@ -195,6 +200,10 @@ for i do
 		;;
 	-h)
 		host=$2
+		shift;shift
+		;;
+	-l)
+		opt_linkdir=$2
 		shift;shift
 		;;
 	-n)
