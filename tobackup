@@ -64,7 +64,18 @@ op_rsync() {
 	log_msg "rsync $opid starting"
 
 	hostcaps=`echo $host | tr 'a-z' 'A-Z'`
-	backuproot="$BACKUP_DIR/$host"
+
+	# BACKUP_DIR global parameter is used,
+	# unless overriden on a per-host basis
+	tmp="echo \$${hostcaps}_BACKUP_DIR"
+	tmpbackuproot=`eval $tmp`
+	if [ "$tmpbackuproot" ]; then
+		backuproot=$tmpbackuproot
+	else
+		backuproot="$BACKUP_DIR"
+	fi
+	backuproot="$backuproot/$host"
+
 	backupdir="$backuproot/$backuplevel"
 	sshkey=$SSH_KEY
 	tmp="echo \$${hostcaps}_BACKUP_SRC"
