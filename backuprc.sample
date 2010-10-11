@@ -1,0 +1,23 @@
+
+# Directory where backup are stored
+BACKUP_DIR=/some/path
+
+# SSH key for remote backup
+SSH_KEY=/some/path/backup.key
+
+## Configuration for local backup
+# Local rsyncd config file
+MYHOST_CONFIG="/usr/local/etc/rsyncd-backup.conf"
+# rsync modules to backup
+MYHOST_BACKUP_SRC=":root :usr :var"
+
+## Configuration for remote host "HOST1"
+# Host name
+HOST1_HOST="host1.example.com"
+# Host port
+HOST1_PORT="221"
+# User
+HOST1_USER="root"
+# rsync modules to backup
+HOST1_BACKUP_SRC=":root :usr :var"
+
