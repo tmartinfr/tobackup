@@ -138,7 +138,10 @@ op_rsync() {
 		else
 			link_dest=""
 			for dir in `find $backuproot/ -maxdepth 2 -name 0`; do
-				link_dest="$link_dest --link-dest=$dir$d"
+				subdir="$dir$d"
+				if [ -d "$subdir" ]; then
+					link_dest="$link_dest --link-dest=$subdir"
+				fi
 			done
 		fi
 
