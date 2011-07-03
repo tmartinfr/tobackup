@@ -79,8 +79,8 @@ have daily backups of the last 6 days.
    ----------------------------------
 Scheduling is done using cron(8). Example :
 
-35      23      *       *       1-6     tobackup -h host1 daily 6
-35      23      *       *       0       tobackup -h host1 weekly 3
+35      23      *       *       1-6     [ $(date +\%d) -ne 1 ] && tobackup -h host1 daily 6
+35      23      *       *       0       [ $(date +\%d) -ne 1 ] && tobackup -h host1 weekly 3
 50      23      1       *       *       tobackup -h host1 monthly 6
 
 This performs daily backup on the last 6 days at 23:35, from monday to
