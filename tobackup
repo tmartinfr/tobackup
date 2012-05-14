@@ -54,7 +54,7 @@ debug() {
 op_rsync() {
 
 	# begin to prepare rsync command
-	rsync_command="rsync -Hax --delete"
+	rsync_command="rsync -Hax --numeric-ids --delete"
 
 	[ "$host" ] || host=`hostname -s`
 	opid="$host/$backuplevel"
