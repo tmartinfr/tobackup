@@ -3,13 +3,12 @@
 ##############################################################################
 # tobackup - A simple unix-style backup tool
 # Author : Thomas Martin <git-tobackup@tmartin.fr>
-# vim: noexpandtab
 ##############################################################################
 
 set -e
 
 usage() {
-	cat <<EOT >&2
+    cat <<EOT >&2
 
 Usage: $0 [OPTION] DIR NUMKEEP
 
@@ -22,178 +21,178 @@ Usage: $0 [OPTION] DIR NUMKEEP
 
  DIR : subdir where backup is done, commonly a backup level (daily, weekly,...)
  NUMKEEP : number of increments
- 
+
 EOT
-	exit 1
+    exit 1
 }
 
 log_msg() {
-	logger -i -t backup $1
+    logger -i -t backup $1
 }
 
 pidfile() {
-	piddir="/var/run"
-	[ -w $piddir ] || piddir=$HOME
-	pidfile=$piddir/backup-$1.pid
+    piddir="/var/run"
+    [ -w $piddir ] || piddir=$HOME
+    pidfile=$piddir/backup-$1.pid
 
-	if [ -e $pidfile ]; then
-		echo "$pidfile exist (`cat $pidfile`)" >&2
-		exit 1
-	fi
-	
-	echo "$$" > $pidfile
-	trap "rm -f $pidfile" EXIT
+    if [ -e $pidfile ]; then
+        echo "$pidfile exist (`cat $pidfile`)" >&2
+        exit 1
+    fi
+
+    echo "$$" > $pidfile
+    trap "rm -f $pidfile" EXIT
 }
 
 debug() {
-	if [ $VERBOSE -eq 1 ]; then
-		echo "debug: $1"
-	fi
+    if [ $VERBOSE -eq 1 ]; then
+        echo "debug: $1"
+    fi
 }
 
 op_rsync() {
 
-	# begin to prepare rsync command
-	rsync_command="rsync -Hax --numeric-ids --delete"
+    # begin to prepare rsync command
+    rsync_command="rsync -Hax --numeric-ids --delete"
 
-	[ "$host" ] || host=`hostname -s`
-	opid="$host/$backuplevel"
-	
-	pidfile rsync-$host-$backuplevel
+    [ "$host" ] || host=`hostname -s`
+    opid="$host/$backuplevel"
 
-	log_msg "rsync $opid starting"
+    pidfile rsync-$host-$backuplevel
 
-	hostcaps=`echo $host | tr 'a-z' 'A-Z'`
+    log_msg "rsync $opid starting"
 
-	# BACKUP_DIR global parameter is used,
-	# unless overriden on a per-host basis
-	tmp="echo \$${hostcaps}_BACKUP_DIR"
-	tmpbackuproot=`eval $tmp`
-	if [ "$tmpbackuproot" ]; then
-		backuproot=$tmpbackuproot
-	else
-		backuproot="$BACKUP_DIR"
-	fi
-	backuproot="$backuproot/$host"
+    hostcaps=`echo $host | tr 'a-z' 'A-Z'`
 
-	backupdir="$backuproot/$backuplevel"
-	sshkey=$SSH_KEY
-	tmp="echo \$${hostcaps}_BACKUP_SRC"
-	backupsrc=`eval $tmp`
-	tmp="echo \$${hostcaps}_HOST"
-	backuphost=`eval $tmp`
-	tmp="echo \$${hostcaps}_PORT"
-	backupport=`eval $tmp`
-	tmp="echo \$${hostcaps}_USER"
-	backupuser=`eval $tmp`
-	tmp="echo \$${hostcaps}_CONFIG"
-	backupconfig=`eval $tmp`
-	tmpdir=$backupdir/tmp
-	cnterror=0
-	cntsrc=0
+    # BACKUP_DIR global parameter is used,
+    # unless overriden on a per-host basis
+    tmp="echo \$${hostcaps}_BACKUP_DIR"
+    tmpbackuproot=`eval $tmp`
+    if [ "$tmpbackuproot" ]; then
+        backuproot=$tmpbackuproot
+    else
+        backuproot="$BACKUP_DIR"
+    fi
+    backuproot="$backuproot/$host"
 
-	if [ -z "$backupsrc" ]; then
-		echo "No directory to backup for host $host"
-		exit 1
-	elif [ "$backuphost" ] && [ -z "$sshkey" ]; then
-		echo "No SSH key defined"
-		exit 1
-	elif [ ! -r $sshkey ]; then
-		echo "SSH key not readable"
-		exit 1
-	fi
+    backupdir="$backuproot/$backuplevel"
+    sshkey=$SSH_KEY
+    tmp="echo \$${hostcaps}_BACKUP_SRC"
+    backupsrc=`eval $tmp`
+    tmp="echo \$${hostcaps}_HOST"
+    backuphost=`eval $tmp`
+    tmp="echo \$${hostcaps}_PORT"
+    backupport=`eval $tmp`
+    tmp="echo \$${hostcaps}_USER"
+    backupuser=`eval $tmp`
+    tmp="echo \$${hostcaps}_CONFIG"
+    backupconfig=`eval $tmp`
+    tmpdir=$backupdir/tmp
+    cnterror=0
+    cntsrc=0
 
-	if [ $VERBOSE -eq 1 ]; then
-		rsync_command="$rsync_command -v --stats"
-	fi
+    if [ -z "$backupsrc" ]; then
+        echo "No directory to backup for host $host"
+        exit 1
+    elif [ "$backuphost" ] && [ -z "$sshkey" ]; then
+        echo "No SSH key defined"
+        exit 1
+    elif [ ! -r $sshkey ]; then
+        echo "SSH key not readable"
+        exit 1
+    fi
 
-	mkdir -p $tmpdir
+    if [ $VERBOSE -eq 1 ]; then
+        rsync_command="$rsync_command -v --stats"
+    fi
 
-	if [ "$backuphost" ]; then
-		execcmd="ssh -p ${backupport:-22} -T -o PreferredAuthentications=publickey -i $sshkey"
-		rsync_command="$rsync_command -z"
-	elif [ "$backupconfig" ]; then
-		backuphost="127.0.0.1"
-		execcmd="rsync --daemon --server --config $backupconfig ."
-	else
-		echo "No _HOST or _CONFIG defined for host $host"
-		exit 1
-	fi
+    mkdir -p $tmpdir
 
-	rsync_command="$rsync_command -e \"$execcmd\""
+    if [ "$backuphost" ]; then
+        execcmd="ssh -p ${backupport:-22} -T -o PreferredAuthentications=publickey -i $sshkey"
+        rsync_command="$rsync_command -z"
+    elif [ "$backupconfig" ]; then
+        backuphost="127.0.0.1"
+        execcmd="rsync --daemon --server --config $backupconfig ."
+    else
+        echo "No _HOST or _CONFIG defined for host $host"
+        exit 1
+    fi
 
-	for src in $backupsrc; do
+    rsync_command="$rsync_command -e \"$execcmd\""
 
-		cntsrc=`expr $cntsrc + 1`
-		d="/"`echo $src | sed s/^://`
-		if [ "$backupuser" ]; then
-			hostsrc="$backupuser@$backuphost:$src"
-		else
-			hostsrc="$backuphost:$src"
-		fi
+    for src in $backupsrc; do
 
-		# add links
-		if [ "$opt_linkdir" ]; then
-			link_dest="--link-dest=$opt_linkdir"
-		else
-			link_dest=""
-			for dir in `find $backuproot/ -maxdepth 2 -name 0`; do
-				subdir="$dir$d"
-				if [ -d "$subdir" ]; then
-					link_dest="$link_dest --link-dest=$subdir"
-				fi
-			done
-		fi
+        cntsrc=`expr $cntsrc + 1`
+        d="/"`echo $src | sed s/^://`
+        if [ "$backupuser" ]; then
+            hostsrc="$backupuser@$backuphost:$src"
+        else
+            hostsrc="$backuphost:$src"
+        fi
 
-		# final command to execute for this src
-		rsync_command_src="$rsync_command $link_dest $hostsrc $tmpdir$d"
+        # add links
+        if [ "$opt_linkdir" ]; then
+            link_dest="--link-dest=$opt_linkdir"
+        else
+            link_dest=""
+            for dir in `find $backuproot/ -maxdepth 2 -name 0`; do
+                subdir="$dir$d"
+                if [ -d "$subdir" ]; then
+                    link_dest="$link_dest --link-dest=$subdir"
+                fi
+            done
+        fi
 
-		# finally launch transfer
-		set +e
-		if [ "$opt_debug" ]; then
-			echo $rsync_command_src
-		else
-			eval $rsync_command_src
-		fi
+        # final command to execute for this src
+        rsync_command_src="$rsync_command $link_dest $hostsrc $tmpdir$d"
 
-		# don't fail in case of vanished source files
-		if [ $? -ne 0 -a $? -ne 24 ]; then
-			log_msg "rsync $opid on $src failure"
-			cnterror=`expr $cnterror + 1`
-		fi
-		set -e
+        # finally launch transfer
+        set +e
+        if [ "$opt_debug" ]; then
+            echo $rsync_command_src
+        else
+            eval $rsync_command_src
+        fi
 
-	done
+        # don't fail in case of vanished source files
+        if [ $? -ne 0 -a $? -ne 24 ]; then
+            log_msg "rsync $opid on $src failure"
+            cnterror=`expr $cnterror + 1`
+        fi
+        set -e
 
-	# set current date on tmp dir
-	touch $tmpdir
+    done
 
-	# rotate unless -n or -d is specified or all transfer have failed
-	if [ -z "$opt_dontrotate" -a -z "$opt_debug" \
-	     -a $cnterror -lt $cntsrc ]; then
+    # set current date on tmp dir
+    touch $tmpdir
 
-		# deleting oldest backup
-		oldestbackup=$backupdir/`expr $numkeep - 1` || true
-		[ -d $oldestbackup ] && rm -rf $oldestbackup
-		
-		# rotation
-		i=`expr $numkeep - 1` || true
-		while [ $i -gt 0 ]; do
-			prev=$backupdir/`expr $i - 1` || true
-			[ -d $prev ] && mv $prev $backupdir/$i
-			i=`expr $i - 1` || true
-		done
-		
-		# moving the performed backup as last backup
-		mv $tmpdir $backupdir/0
+    # rotate unless -n or -d is specified or all transfer have failed
+    if [ -z "$opt_dontrotate" -a -z "$opt_debug" \
+         -a $cnterror -lt $cntsrc ]; then
 
-	fi
+        # deleting oldest backup
+        oldestbackup=$backupdir/`expr $numkeep - 1` || true
+        [ -d $oldestbackup ] && rm -rf $oldestbackup
 
-	if [ $cnterror -eq 0 ]; then
-		log_msg "rsync $opid successful"
-	else
-		log_msg "rsync $opid failure (errors on $cnterror/$cntsrc src)"
-	fi
+        # rotation
+        i=`expr $numkeep - 1` || true
+        while [ $i -gt 0 ]; do
+            prev=$backupdir/`expr $i - 1` || true
+            [ -d $prev ] && mv $prev $backupdir/$i
+            i=`expr $i - 1` || true
+        done
+
+        # moving the performed backup as last backup
+        mv $tmpdir $backupdir/0
+
+    fi
+
+    if [ $cnterror -eq 0 ]; then
+        log_msg "rsync $opid successful"
+    else
+        log_msg "rsync $opid failure (errors on $cnterror/$cntsrc src)"
+    fi
 }
 
 #----------------------------------------------------------------------------#
@@ -207,32 +206,32 @@ args=`getopt nvdh:f:l: $*`
 [ $? -ne 0 ] && usage
 
 for i do
-	case "$i" in
-	-f)
-		conffile=$2
-		shift;shift
-		;;
-	-h)
-		host=$2
-		shift;shift
-		;;
-	-l)
-		opt_linkdir=$2
-		shift;shift
-		;;
-	-n)
-		opt_dontrotate=1
-		shift
-		;;
-	-d)
-		opt_debug=1
-		shift
-		;;
-	-v)
-		VERBOSE=1
-		shift
-		;;
-	esac
+    case "$i" in
+    -f)
+        conffile=$2
+        shift;shift
+        ;;
+    -h)
+        host=$2
+        shift;shift
+        ;;
+    -l)
+        opt_linkdir=$2
+        shift;shift
+        ;;
+    -n)
+        opt_dontrotate=1
+        shift
+        ;;
+    -d)
+        opt_debug=1
+        shift
+        ;;
+    -v)
+        VERBOSE=1
+        shift
+        ;;
+    esac
 done
 
 [ $# -ne 2 ] && usage
