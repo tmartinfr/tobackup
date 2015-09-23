@@ -2,7 +2,7 @@
 
 ##############################################################################
 # tobackup - A simple unix-style backup tool
-# Author : Thomas Martin <git-tobackup@tmartin.fr>
+# Author : Thomas Martin <thomas@oopss.org>
 ##############################################################################
 
 set -e
