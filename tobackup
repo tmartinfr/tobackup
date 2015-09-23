@@ -145,6 +145,7 @@ op_rsync() {
         fi
 
         # final command to execute for this src
+        mkdir -p "$tmpdir$d"
         rsync_command_src="$rsync_command $link_dest $hostsrc $tmpdir$d"
 
         # finally launch transfer
