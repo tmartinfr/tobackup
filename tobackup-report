@@ -1,0 +1,72 @@
+#!/bin/sh
+
+##############################################################################
+# tobackup - A simple unix-style backup tool
+# Author : Thomas Martin <thomas@oopss.org>
+##############################################################################
+
+usage() {
+    cat <<EOT >&2
+Usage: $0 [OPTION] HOST EMAIL
+
+ -f FILE : specify alternative config file (default /usr/local/etc/backuprc)
+
+ HOST : host referenced in config file
+ EMAIL : where to send reports
+
+EOT
+}
+
+args=`getopt f: $*`
+[ $? -ne 0 ] && usage
+
+conffile="/usr/local/etc/backuprc"
+for i do
+    case "$i" in
+    -f)
+        conffile=$2
+        shift;shift
+        ;;
+    esac
+done
+
+if [ $# -ne 2 ]; then
+    usage
+    exit 1
+fi
+
+. $conffile
+backuphost=$1
+email=$2
+
+mailbody=`mktemp /tmp/mailbody.XXXXXX`
+exec >$mailbody
+
+cat <<EOT
+======================
+Backup archives report
+======================
+
+EOT
+
+print_size() {
+    size=`du -sh $1 | cut -f 1`
+    mtime_timestamp=$(stat -c "%Y" $1)
+    mtime=$(date -d @$mtime_timestamp '+%Y/%m/%d')
+    printf "%s = %s\n" $mtime $size
+}
+
+for subdir in daily weekly monthly; do
+    fullsubdir="/home/backup/$backuphost/$subdir"
+    if [ -d $fullsubdir ]; then
+        echo "Archives $subdir :"
+        cd $fullsubdir
+        for i in [0-9]; do
+            print_size $i
+        done
+        echo
+    fi
+done
+
+mail -s "[$backuphost] backup report" $email <$mailbody
+
