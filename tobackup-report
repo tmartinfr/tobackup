@@ -10,6 +10,7 @@ usage() {
 Usage: $0 [OPTION] HOST EMAIL
 
  -f FILE : specify alternative config file (default /usr/local/etc/backuprc)
+ -d DEPTH : print DEPTH levels of last backup content
 
  HOST : host referenced in config file
  EMAIL : where to send reports
@@ -17,18 +18,19 @@ Usage: $0 [OPTION] HOST EMAIL
 EOT
 }
 
-args=`getopt f: $*`
-[ $? -ne 0 ] && usage
-
 conffile="/usr/local/etc/backuprc"
-for i do
-    case "$i" in
-    -f)
-        conffile=$2
-        shift;shift
+
+while getopts 'f:d:' opt; do
+    case $opt in
+    f)
+        conffile=$OPTARG
+        ;;
+    d)
+        backup_detail_depth=$OPTARG
         ;;
     esac
 done
+shift $((OPTIND-1))
 
 if [ $# -ne 2 ]; then
     usage
@@ -67,6 +69,24 @@ for subdir in daily weekly monthly; do
         echo
     fi
 done
+
+print_backup_detail() {
+    backuphost=$1
+    depth=$2
+
+cat <<EOT
+
+Last backup (first-level directories)
+=====================================
+EOT
+
+    cd /home/backup/$backuphost/daily/0
+    find . -maxdepth $depth -type d
+}
+
+if [ $backup_detail_depth ]; then
+    print_backup_detail $backuphost $backup_detail_depth
+fi
 
 mail -s "[$backuphost] backup report" $email <$mailbody
 
